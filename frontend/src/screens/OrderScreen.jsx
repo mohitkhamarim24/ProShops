@@ -6,13 +6,15 @@ import { useSelector } from 'react-redux';
 import {PayPalButtons,usePayPalScriptReducer} from '@paypal/react-paypal-js'
 import Message from '../components/Message';
 import Loader from '../components/Loader';
-import { useGetOrderDetailsQuery,usePayOrderMutation,useGetPayPalClientIdQuery} from '../slices/orderApiSlice';
+import { useGetOrderDetailsQuery,usePayOrderMutation,useGetPayPalClientIdQuery,useDeliverOrderMutation} from '../slices/orderApiSlice';
 
 const OrderScreen = () => {
     const { id: orderId } = useParams();
     const { data: order, refetch, isLoading, error } = useGetOrderDetailsQuery(orderId);
 
     const [payOrder , {isLoading :loadingPay}] = usePayOrderMutation();
+
+    const[deliverOrder,{isLoading: loadingDeliver}] = useDeliverOrderMutation();
 
     const[{isPending},paypalDispatch] = usePayPalScriptReducer();
 
@@ -66,7 +68,15 @@ const OrderScreen = () => {
             toast.error(err?.data?.message || err.message);
         }
     }
-    
+    const deliverhandler = async() =>{
+        try {
+            await deliverOrder(orderId);
+            refetch();
+            toast.success('Order delivered');
+        }catch(err){
+            toast.error(err.data?.message||err.message);
+        }
+    }
 
     function onError(err){
         toast.error(err.message);
@@ -188,6 +198,12 @@ const OrderScreen = () => {
                                     </div>
                                   )}
                                 </ListGroup.Item>
+                                )}
+                                {loadingDeliver && <Loader/>}
+                                {userInfo && userInfo.isAdmin && order.isPaid && !order.isDelivered && (
+                                    <ListGroup.Item>
+                                        <Button type = 'button' className='btn btn-black' onClick={deliverhandler}>Mark As Delivered</Button>
+                                    </ListGroup.Item>
                                 )}
                         </ListGroup>
                     </Card>
